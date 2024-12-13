@@ -35,3 +35,14 @@ class MACAddressChanger:
         """
         pattern = r"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"
         return re.match(pattern,mac) is not None
+    
+    def get_current_mac(self):
+        """
+        Get the current MAC address of the network interface.
+
+        Returns:
+            str: The current MAC address if found.
+
+        Raises:
+            RuntimeError: If the MAC address cannot be retrieved.
+        """
