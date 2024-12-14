@@ -46,3 +46,13 @@ class MACAddressChanger:
         Raises:
             RuntimeError: If the MAC address cannot be retrieved.
         """
+        
+        try:
+            result = subprocess.check_output(["ifconfig", self.interface], text=True)
+            mac_address = re.search(r"ether ([0-9a-fA-F:]{17})", result)
+            if mac_address:
+                return mac_address.group(1)
+            else:
+                raise RuntimeError(f"Could not read the MAC address from {self.interface}")
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Failed to retrieve MAC address: {e}")
