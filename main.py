@@ -83,6 +83,37 @@ class MACAddressChanger:
             RuntimeError: If any system command fails.
         """
         
+        try:
+            # Checking the OS
+            system_platform = platform.system.lower()
+            if system_platform == "linux" or system_platform == "darwin": # MAC or Linux
+                print(f"[INFO] Disabling {self.interface}...")
+                subprocess.run(["sudo", "ifconfig", self.interface, "down"], check=True)
+
+                print(f"[INFO] Changing MAC address to {self.new_mac}...")
+                subprocess.run(["sudo", "ifconfig", self.interface, "hw", "ether", self.new_mac], check=True)
+
+                print(f"[INFO] Enabling {self.interface}...")
+                subprocess.run(["sudo", "ifconfig", self.interface, "up"], check=True)
+
+                print(f"[SUCCESS] MAC address changed successfully!")
+                
+            elif system_platform == "windows": # For windows
+                print(f"[INFO] Disabling {self.interface}...")
+                subprocess.run(["ipconfig", self.interface, "down"], check=True)
+                
+                print(f"[INFO] Changing MAC address to {self.new_mac}...")
+                subprocess.run(["ipconfig", self.interface, "hw", "ether", self.new_mac], check=True)
+                
+                print(f"[INFO] Enabling {self.interface}...")
+                subprocess.run(["ipconfig", self.interface, "up"], check=True)
+            
+            else:
+                raise RuntimeError(f"Unsupported operating system: {system_platform}")
+            
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Failed to change MAC address: {e}")
+        
         
 if __name__ == "__main__":
     print("[INFO] MAC Address Changer")
