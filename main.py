@@ -83,10 +83,25 @@ class MACAddressChanger:
             RuntimeError: If any system command fails.
         """
         
+        # Checking the OS
+        system_platform = platform.system().lower()
+        
         try:
-            # Checking the OS
-            system_platform = platform.system.lower()
-            if system_platform == "linux" or system_platform == "darwin": # MAC or Linux
+            if system_platform == "windows":
+                print("[INFO] Windows does not natively support changing MAC addresses via command line.")
+                print("[INFO] Use third-party tools or manually change MAC address in adapter settings.")
+            elif system_platform == "darwin":  # macOS
+                print(f"[INFO] Disabling {self.interface}...")
+                subprocess.run(["sudo", "ifconfig", self.interface, "down"], check=True)
+
+                print(f"[INFO] Changing MAC address to {self.new_mac}...")
+                subprocess.run(["sudo", "ifconfig", self.interface, "ether", self.new_mac], check=True)
+
+                print(f"[INFO] Enabling {self.interface}...")
+                subprocess.run(["sudo", "ifconfig", self.interface, "up"], check=True)
+
+                print(f"[SUCCESS] MAC address changed successfully!")
+            else:  # Linux
                 print(f"[INFO] Disabling {self.interface}...")
                 subprocess.run(["sudo", "ifconfig", self.interface, "down"], check=True)
 
@@ -97,28 +112,43 @@ class MACAddressChanger:
                 subprocess.run(["sudo", "ifconfig", self.interface, "up"], check=True)
 
                 print(f"[SUCCESS] MAC address changed successfully!")
-                
-            elif system_platform == "windows": # For windows
-                print(f"[INFO] Disabling {self.interface}...")
-                subprocess.run(["ipconfig", self.interface, "down"], check=True)
-                
-                print(f"[INFO] Changing MAC address to {self.new_mac}...")
-                subprocess.run(["ipconfig", self.interface, "hw", "ether", self.new_mac], check=True)
-                
-                print(f"[INFO] Enabling {self.interface}...")
-                subprocess.run(["ipconfig", self.interface, "up"], check=True)
-            
-            else:
-                raise RuntimeError(f"Unsupported operating system: {system_platform}")
-            
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to change MAC address: {e}")
+        
+    def run(self):
+        """
+        Execute the MAC Address change process.
+        Verifies the new MAC address format, retrieves the current MAC, and updates it.
+        """
+        
+        if not self.validate_mac(self.new_mac):
+            print("[ERROR] Invalid MAC address format.")
+            sys.exit(1)
+
+        try:
+            current_mac = self.get_current_mac()
+            print(f"[INFO] Current MAC address: {current_mac}")
+
+            self.change_mac()
+            
+            system_platform = platform.system().lower()
+            
+            if system_platform != "windows":
+                update_mac = self.new_mac
+                if update_mac == self.new_mac:
+                    print(f"[SUCCESS] MAC address successfully changed to {update_mac}")
+                else:
+                    print(f"[ERROR] MAC address change failed.")
+        
+        except RuntimeError as e:
+            print(f"[ERROR] {e}")
+            sys.exit(1)
         
         
 if __name__ == "__main__":
     print("[INFO] MAC Address Changer")
     interface = input("Enter the interface (e.g., eth0, wlan0): ").strip()
-    
-    changer = MACAddressChanger(interface, "11:11:11:11:11:11")
-    mac = changer.get_current_mac()
-    print(mac)
+    new_mac = input("Enter the new MAC address (e.g., 00:11:22:33:44:55): ").strip()
+
+    changer = MACAddressChanger(interface, new_mac)
+    changer.run()
